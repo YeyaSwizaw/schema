@@ -3,18 +3,18 @@
 in vec2 vertex;
 
 // Box Parameters
-uniform vec2 position;
+uniform ivec2 position;
 uniform uvec2 size;
 
 // Display Parameters
-uniform vec2 off;
+uniform ivec2 off;
 uniform uvec2 display;
 uniform float scale;
 
 out vec2 world_coords;
 
 void main() {
-    world_coords = position + vertex * float(size) - float(size) / 2;
+    world_coords = position + vertex * size - vec2(size) / 2;
 
     mat4 proj = mat4(
         2 * scale / float(display.x), 0, 0, 0,

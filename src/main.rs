@@ -1,102 +1,118 @@
 #[macro_use] extern crate glium;
 
-use glium::{Surface, DisplayBuild};
-use glium::glutin::{WindowBuilder, Event, ElementState, MouseScrollDelta};
-use glium::index::{NoIndices, PrimitiveType};
-use glium::vertex::VertexBuffer;
+use std::time::{Duration, Instant};
+use std::thread::sleep;
+
+use glium::{DisplayBuild};
+use glium::glutin::{WindowBuilder, Event, ElementState, MouseScrollDelta, VirtualKeyCode};
+use glium::backend::glutin_backend::GlutinFacade;
 
 use model::Model;
+use renderer::Renderer;
+use values::*;
 
 mod model;
 mod view;
 mod shaders;
+mod values;
+mod renderer;
 
-#[derive(Copy, Clone)]
-struct TableVertex {
-    vertex: (u32, u32)
+struct App<'a> {
+    display: GlutinFacade,
+    renderer: Renderer<'a>,
+    values: DisplayValues,
+    mouse: DisplayCoord,
+
+    model: Model
 }
 
-fn tv(x: u32, y: u32) -> TableVertex {
-    TableVertex {
-        vertex: (x, y)
+impl<'a> App<'a> {
+    fn new() -> App<'a> {
+        let display = WindowBuilder::new()
+            .with_title("Schema Designer")
+            .with_dimensions(600, 600)
+            .with_decorations(false)
+            .with_vsync()
+            .build_glium()
+            .unwrap();
+
+        let values = DisplayValues::new(display.get_window().unwrap().get_inner_size_pixels().unwrap());
+        let renderer = Renderer::new(&display);
+
+        App {
+            display: display,
+            renderer: renderer,
+            values: values,
+            mouse: DisplayCoord(0, 0),
+
+            model: Model::new()
+        }
     }
-}
 
-implement_vertex!(TableVertex, vertex);
-
-fn main() {
-    let display = WindowBuilder::new()
-        .with_title("Schema Designer")
-        .with_dimensions(600, 600)
-        .with_decorations(false)
-        .build_glium()
-        .unwrap();
-
-    let table_program = shaders::table_shader(&display);
-    let table_indices = NoIndices(PrimitiveType::TriangleFan);
-    let table_vertices = VertexBuffer::new(&display, &[tv(0, 0), tv(0, 1), tv(1, 1), tv(1, 0)]).unwrap();
-
-    let mut display_size = display.get_window().unwrap().get_inner_size_pixels().unwrap();
-
-    let mut mouse = (0.0, 0.0);
-    let mut offset = (0.0f32, 0.0f32);
-    let mut scale = 1.0;
-
-    let mut model = Model::new();
-
-    loop {
-        for event in display.poll_events() {
+    fn main_loop(&mut self) -> Option<()> {
+        for event in self.display.poll_events() {
             match event {
-                Event::Resized(w, h) => display_size = (w, h),
+                Event::Resized(w, h) => self.values.size = (w, h),
 
-                Event::MouseMoved(x, y) => mouse = (x as f32, y as f32),
+                Event::MouseMoved(x, y) => self.mouse = DisplayCoord(x, y),
 
-                Event::MouseWheel(d, p) => {
+                Event::MouseWheel(d, _) => {
                     match d {
                         MouseScrollDelta::LineDelta(_, _) => unimplemented!(),
                         MouseScrollDelta::PixelDelta(_, yd) => {
                             let yd = std::cmp::max(std::cmp::min(yd as i32, 200), -200);
-                            scale += yd as f32 / 200.0;
-                            println!("Scale: {}", scale);
+                            self.values.scale += yd as f32 / 200.0;
                         }
                     }
-
-                    println!("{:?}, {:?}", d, p);
                 },
 
                 Event::MouseInput(ElementState::Pressed, _) => {
-                    model.add_table("memes", (mouse.0 / scale + offset.0, mouse.1 / scale + offset.1));
+                    self.model.add_table("", self.values.world_coord(self.mouse));
                 },
 
-                Event::KeyboardInput(ElementState::Pressed, _, _) => {
-                    offset.1 += 10.0;
+                Event::KeyboardInput(ElementState::Pressed, _, Some(code)) => {
+                    match code {
+                        VirtualKeyCode::Up | VirtualKeyCode::W => self.values.offset.1 -= 20,
+                        VirtualKeyCode::Down | VirtualKeyCode::S => self.values.offset.1 += 20,
+                        VirtualKeyCode::Left | VirtualKeyCode::A => self.values.offset.0 -= 20,
+                        VirtualKeyCode::Right | VirtualKeyCode::D => self.values.offset.0 += 20,
+                        _ => ()
+                    }
                 },
 
-                Event::Closed => return,
+                Event::Closed => return None,
 
                 _ => ()
             }
         }
 
-        let mut target = display.draw();
-        target.clear_color(0.3, 0.3, 0.3, 0.0);
-
-        for table in model.view.tables() {
-            target.draw(
-                &table_vertices,
-                table_indices,
-                &table_program,
-                &uniform! {
-                    position: table.pos,
-                    size: (100u32, 100u32),
-                    off: offset,
-                    display: display_size,
-                    scale: scale,
-                },
-                &Default::default()
-            ).unwrap();
-        }
-
+        let mut target = self.display.draw();
+        self.renderer.render_tables(&mut target, &self.values, &self.model.view);
         target.finish().unwrap();
+
+        Some(())
     }
+
+    fn run(&mut self) {
+        let mut accum = Duration::from_millis(0);
+        let mut prev = Instant::now();
+
+        let spf = Duration::from_millis(33);
+
+        while let Some(()) = self.main_loop() {
+            let now = Instant::now();
+            accum += now - prev;
+            prev = now;
+
+            while accum >= spf {
+                accum -= spf;
+            }
+
+            sleep(spf - accum);
+        }
+    }
+}
+
+fn main() {
+    App::new().run()
 }

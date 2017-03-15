@@ -1,4 +1,5 @@
 use ::view::View;
+use ::values::*;
 
 struct Table {
     name: String,
@@ -27,7 +28,7 @@ impl Model {
         }
     }
 
-    pub fn add_table<S: AsRef<str>>(&mut self, name: S, pos: (f32, f32)) {
+    pub fn add_table<S: AsRef<str>>(&mut self, name: S, pos: WorldCoord) {
         let table = Table::new(name);
         let idx = self.tables.len();
         self.tables.push(table);

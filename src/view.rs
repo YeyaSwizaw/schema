@@ -1,7 +1,10 @@
+use ::values::*;
+
 pub struct Table {
     id: usize,
 
-    pub pos: (f32, f32)
+    pub pos: WorldCoord,
+    pub size: (u32, u32),
 }
 
 pub struct View {
@@ -9,10 +12,11 @@ pub struct View {
 }
 
 impl Table {
-    fn new(id: usize, pos: (f32, f32)) -> Table {
+    fn new(id: usize, pos: WorldCoord) -> Table {
         Table {
             id: id,
-            pos: pos
+            pos: pos,
+            size: (260, 340)
         }
     }
 }
@@ -28,7 +32,7 @@ impl View {
         &self.tables
     }
 
-    pub fn add_table(&mut self, id: usize, pos: (f32, f32)) {
+    pub fn add_table(&mut self, id: usize, pos: WorldCoord) {
         self.tables.push(Table::new(id, pos))
     }
 }
