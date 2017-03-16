@@ -12,6 +12,8 @@ implement_uniform_block!(DisplayValues, size, offset, scale);
 #[derive(Default, Copy, Clone)]
 pub struct InputValues {
     pub mouse: DisplayCoord,
+    pub moved: bool,
+
     pub up: bool,
     pub down: bool,
     pub left: bool,

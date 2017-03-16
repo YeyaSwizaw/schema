@@ -1,4 +1,4 @@
-use glium::{Surface, Blend};
+use glium::{Surface, Blend, Depth, DepthTest};
 use glium::program::Program;
 use glium::backend::Facade;
 use glium::index::{NoIndices, PrimitiveType};
@@ -44,6 +44,11 @@ impl<'a> Renderer<'a> {
 
             draw_params: DrawParameters {
                 blend: Blend::alpha_blending(),
+                depth: Depth {
+                    test: DepthTest::IfLess,
+                    write: true,
+                    ..Default::default()
+                },
                 ..Default::default()
             }
         }
@@ -54,12 +59,11 @@ impl<'a> Renderer<'a> {
     }
 
     pub fn render_tables<Target: Surface>(&self, target: &mut Target, view: &View) {
-        target.clear_color(0.3, 0.3, 0.3, 1.0);
-
         for table in view.tables() {
             let uniforms = uniform! {
                 position: table.pos,
                 size: table.size,
+                z: table.z,
                 inner_colour: table.inner_colour,
                 outer_colour: table.outer_colour,
                 display: &self.display_uniforms,

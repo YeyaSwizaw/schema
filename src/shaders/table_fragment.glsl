@@ -13,7 +13,7 @@ out vec4 colour;
 void main() {
     float border = 15;
 
-    vec2 x0y0 = position - vec2(size) / 2;
+    vec2 x0y0 = position;
     vec2 x1y1 = x0y0 + size;
 
     vec4 inner = inner_colour;
@@ -31,7 +31,7 @@ void main() {
         if(d < border) {
             colour = inner + s * d;
         } else {
-            colour.a = 0;
+            discard;
         }
     } else if(xd < border) {
         colour = inner + s * (border - xd);

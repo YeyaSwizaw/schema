@@ -5,6 +5,7 @@ in vec2 vertex;
 // Box Parameters
 uniform ivec2 position;
 uniform ivec2 size;
+uniform int z;
 
 // Display Parameters
 uniform display {
@@ -16,13 +17,13 @@ uniform display {
 out vec2 world_coords;
 
 void main() {
-    world_coords = position + vertex * size - vec2(size) / 2;
+    world_coords = position + vertex * size;
 
     mat4 proj = mat4(
         2 * display.scale / float(display.size.x), 0, 0, 0,
         0, -2 * display.scale / float(display.size.y), 0, 0,
-        0, 0, 1, 0,
-        -1, 1, 1, 1
+        0, 0, -0.01, 0,
+        -1, 1, 0, 1
     );
-    gl_Position = proj * vec4(world_coords - display.offset, 0, 1);
+    gl_Position = proj * vec4(world_coords - display.offset, z, 1);
 }

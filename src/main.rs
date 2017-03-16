@@ -6,11 +6,12 @@ use std::time::{Duration, Instant};
 use std::thread::sleep;
 use std::cmp;
 
-use glium::{DisplayBuild};
+use glium::{DisplayBuild, Surface};
 use glium::glutin::{WindowBuilder, Event, ElementState, MouseScrollDelta, VirtualKeyCode};
 use glium::backend::glutin_backend::GlutinFacade;
 
 use model::Model;
+use view::Index;
 use renderer::Renderer;
 use values::*;
 use states::{State, Action};
@@ -25,8 +26,10 @@ mod states;
 pub struct App<'a> {
     display: GlutinFacade,
     renderer: Renderer<'a>,
+
     display_values: DisplayValues,
     input_values: InputValues,
+    focus: Option<Index>,
 
     model: Model
 }
@@ -37,6 +40,7 @@ impl<'a> App<'a> {
             .with_title("Schema Designer")
             .with_dimensions(600, 600)
             .with_decorations(false)
+            .with_depth_buffer(24)
             .with_vsync()
             .build_glium()
             .unwrap();
@@ -48,8 +52,10 @@ impl<'a> App<'a> {
         App {
             display: display,
             renderer: renderer,
+
             display_values: values,
             input_values: InputValues::new(),
+            focus: None,
 
             model: Model::new()
         }
@@ -65,6 +71,7 @@ impl<'a> App<'a> {
 
             Event::MouseMoved(x, y) => {
                 self.input_values.mouse = DisplayCoord(x, y);
+                self.input_values.moved = true;
                 None
             },
 
@@ -149,7 +156,7 @@ impl<'a> App<'a> {
         Some(state)
     }
 
-    fn tick(&mut self) {
+    fn check_scroll(&mut self) {
         let mut moved = false;
 
         if self.input_values.up {
@@ -177,8 +184,16 @@ impl<'a> App<'a> {
         }
     }
 
+    fn check_focus(&mut self) {
+        let coord = self.display_values.world_coord(self.input_values.mouse);
+        self.focus = self.model.view.check_focus(coord);
+    }
+
     fn render_frame(&self) {
         let mut target = self.display.draw();
+        target.clear_color(0.3, 0.3, 0.3, 1.0);
+        target.clear_depth(1.0);
+
         self.renderer.render_tables(&mut target, &self.model.view);
         target.finish().unwrap();
     }
@@ -201,7 +216,7 @@ impl<'a> App<'a> {
             while accum >= spf {
                 accum -= spf;
 
-                self.tick();
+                state.handle_tick(self);
             }
 
             sleep(spf - accum);
