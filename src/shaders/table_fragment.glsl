@@ -4,7 +4,7 @@ in vec2 world_coords;
 
 // Box Parameters
 uniform ivec2 position;
-uniform uvec2 size;
+uniform ivec2 size;
 uniform vec4 inner_colour;
 uniform vec4 outer_colour;
 

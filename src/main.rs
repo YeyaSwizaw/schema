@@ -4,6 +4,7 @@
 
 use std::time::{Duration, Instant};
 use std::thread::sleep;
+use std::cmp;
 
 use glium::{DisplayBuild};
 use glium::glutin::{WindowBuilder, Event, ElementState, MouseScrollDelta, VirtualKeyCode};
@@ -12,25 +13,22 @@ use glium::backend::glutin_backend::GlutinFacade;
 use model::Model;
 use renderer::Renderer;
 use values::*;
+use states::{State, Action};
 
 mod model;
 mod view;
 mod shaders;
 mod values;
 mod renderer;
+mod states;
 
-struct App<'a> {
+pub struct App<'a> {
     display: GlutinFacade,
     renderer: Renderer<'a>,
     display_values: DisplayValues,
     input_values: InputValues,
 
     model: Model
-}
-
-#[derive(Copy, Clone)]
-enum State {
-    Main
 }
 
 impl<'a> App<'a> {
@@ -57,64 +55,98 @@ impl<'a> App<'a> {
         }
     }
 
-    fn handle_main(&mut self) -> Option<State> {
-        for event in self.display.poll_events() {
-            match event {
-                Event::Resized(w, h) => {
-                    self.display_values.size = (w, h);
-                    self.renderer.update_display(&self.display_values);
+    fn default_actions(&mut self, event: Event) -> Option<State> {
+        match event {
+            Event::Resized(w, h) => {
+                self.display_values.size = (w, h);
+                self.renderer.update_display(&self.display_values);
+                None
+            },
+
+            Event::MouseMoved(x, y) => {
+                self.input_values.mouse = DisplayCoord(x, y);
+                None
+            },
+
+            Event::MouseWheel(d, _) => {
+                match d {
+                    MouseScrollDelta::LineDelta(_, _) => unimplemented!(),
+                    MouseScrollDelta::PixelDelta(_, yd) => {
+                        let sd = cmp::max(cmp::min(yd as i32, 200), -200) as f32 / -200.0;
+
+                        let a = if self.display_values.scale + sd > 0.1 {
+                            let a = self.display_values.world_coord(self.input_values.mouse);
+                            self.display_values.scale += sd;
+                            a
+                        } else {
+                            return None
+                        };
+
+                        let b = self.display_values.world_coord(self.input_values.mouse);
+
+                        self.display_values.offset.0 -= b.0 - a.0;
+                        self.display_values.offset.1 -= b.1 - a.1;
+
+                        self.renderer.update_display(&self.display_values);
+                    }
                 }
 
-                Event::MouseMoved(x, y) => self.input_values.mouse = DisplayCoord(x, y),
+                None
+            },
 
-                Event::MouseWheel(d, _) => {
-                    match d {
-                        MouseScrollDelta::LineDelta(_, _) => unimplemented!(),
-                        MouseScrollDelta::PixelDelta(_, yd) => {
-                            let yd = std::cmp::max(std::cmp::min(yd as i32, 200), -200);
-                            self.display_values.scale += yd as f32 / 200.0;
-                            self.renderer.update_display(&self.display_values);
-                        }
-                    }
+
+            Event::KeyboardInput(ElementState::Pressed, _, Some(code)) => {
+                match code {
+                    VirtualKeyCode::Up | VirtualKeyCode::W => self.input_values.up = true,
+                    VirtualKeyCode::Down | VirtualKeyCode::S => self.input_values.down = true,
+                    VirtualKeyCode::Left | VirtualKeyCode::A => self.input_values.left = true,
+                    VirtualKeyCode::Right | VirtualKeyCode::D => self.input_values.right = true,
+                    _ => ()
+                }
+
+                None
+            },
+
+            Event::KeyboardInput(ElementState::Released, _, Some(code)) => {
+                match code {
+                    VirtualKeyCode::Up | VirtualKeyCode::W => self.input_values.up = false,
+                    VirtualKeyCode::Down | VirtualKeyCode::S => self.input_values.down = false,
+                    VirtualKeyCode::Left | VirtualKeyCode::A => self.input_values.left = false,
+                    VirtualKeyCode::Right | VirtualKeyCode::D => self.input_values.right = false,
+                    _ => ()
+                }
+
+                None
+            },
+
+            Event::Closed => Some(State::Quit),
+
+            _ => None
+        }
+    }
+
+    fn handle_events(&mut self, mut state: State) -> Option<State> {
+        loop {
+            let event = if let Some(event) = self.display.poll_events().next() {
+                event
+            } else {
+                break
+            };
+
+            state = match state.handle_event(self, event.clone()) {
+                Action::Default => if let Some(state) = self.default_actions(event) {
+                    state
+                } else {
+                    state
                 },
 
-                Event::MouseInput(ElementState::Pressed, _) => {
-                    self.model.add_table("", self.display_values.world_coord(self.input_values.mouse));
-                },
-
-                Event::KeyboardInput(ElementState::Pressed, _, Some(code)) => {
-                    match code {
-                        VirtualKeyCode::Up | VirtualKeyCode::W => self.input_values.up = true,
-                        VirtualKeyCode::Down | VirtualKeyCode::S => self.input_values.down = true,
-                        VirtualKeyCode::Left | VirtualKeyCode::A => self.input_values.left = true,
-                        VirtualKeyCode::Right | VirtualKeyCode::D => self.input_values.right = true,
-                        _ => ()
-                    }
-                },
-
-                Event::KeyboardInput(ElementState::Released, _, Some(code)) => {
-                    match code {
-                        VirtualKeyCode::Up | VirtualKeyCode::W => self.input_values.up = false,
-                        VirtualKeyCode::Down | VirtualKeyCode::S => self.input_values.down = false,
-                        VirtualKeyCode::Left | VirtualKeyCode::A => self.input_values.left = false,
-                        VirtualKeyCode::Right | VirtualKeyCode::D => self.input_values.right = false,
-                        _ => ()
-                    }
-                },
-
-                Event::Closed => return None,
-
-                _ => ()
+                Action::Continue => state,
+                Action::Done(state) => state,
+                Action::Quit => return None
             }
         }
 
-        Some(State::Main)
-    }
-
-    fn handle_state(&mut self, state: State) -> Option<State> {
-        match state {
-            State::Main => self.handle_main()
-        }
+        Some(state)
     }
 
     fn tick(&mut self) {
@@ -158,7 +190,7 @@ impl<'a> App<'a> {
         let spf = Duration::from_millis(33);
 
         let mut state = State::Main;
-        while let Some(next) = self.handle_state(state) {
+        while let Some(next) = self.handle_events(state) {
             state = next;
             self.render_frame();
 

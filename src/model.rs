@@ -1,4 +1,4 @@
-use ::view::View;
+use ::view::{View, Index};
 use ::values::*;
 
 struct Table {
@@ -28,10 +28,10 @@ impl Model {
         }
     }
 
-    pub fn add_table<S: AsRef<str>>(&mut self, name: S, pos: WorldCoord) {
+    pub fn add_table<S: AsRef<str>>(&mut self, name: S, pos: WorldCoord) -> Index {
         let table = Table::new(name);
         let idx = self.tables.len();
         self.tables.push(table);
-        self.view.add_table(idx, pos);
+        self.view.add_table(idx, pos)
     }
 }

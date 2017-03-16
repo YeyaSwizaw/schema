@@ -4,7 +4,7 @@ in vec2 vertex;
 
 // Box Parameters
 uniform ivec2 position;
-uniform uvec2 size;
+uniform ivec2 size;
 
 // Display Parameters
 uniform display {
