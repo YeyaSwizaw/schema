@@ -1,12 +1,24 @@
 use glium::uniforms::{AsUniformValue, UniformValue};
 
+#[derive(Debug, Copy, Clone)]
 pub struct DisplayValues {
     pub size: (u32, u32),
     pub offset: (i32, i32),
     pub scale: f32,
 }
 
-#[derive(Copy, Clone)]
+implement_uniform_block!(DisplayValues, size, offset, scale);
+
+#[derive(Default, Copy, Clone)]
+pub struct InputValues {
+    pub mouse: DisplayCoord,
+    pub up: bool,
+    pub down: bool,
+    pub left: bool,
+    pub right: bool
+}
+
+#[derive(Default, Copy, Clone)]
 pub struct DisplayCoord(pub i32, pub i32);
 
 #[derive(Copy, Clone)]
@@ -26,6 +38,12 @@ impl DisplayValues {
             (coord.0 as f32 / self.scale + self.offset.0 as f32) as i32, 
             (coord.1 as f32 / self.scale + self.offset.1 as f32) as i32
         )
+    }
+}
+
+impl InputValues {
+    pub fn new() -> InputValues {
+        Default::default()
     }
 }
 

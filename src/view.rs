@@ -5,6 +5,9 @@ pub struct Table {
 
     pub pos: WorldCoord,
     pub size: (u32, u32),
+
+    pub inner_colour: (f32, f32, f32, f32),
+    pub outer_colour: (f32, f32, f32, f32),
 }
 
 pub struct View {
@@ -15,8 +18,12 @@ impl Table {
     fn new(id: usize, pos: WorldCoord) -> Table {
         Table {
             id: id,
+
             pos: pos,
-            size: (260, 340)
+            size: (260, 340),
+
+            inner_colour: (0.8, 0.6, 0.4, 1.0),
+            outer_colour: (0.2, 0.1, 0.4, 1.0)
         }
     }
 }

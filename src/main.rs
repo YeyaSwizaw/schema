@@ -1,3 +1,5 @@
+#![feature(box_syntax)]
+
 #[macro_use] extern crate glium;
 
 use std::time::{Duration, Instant};
@@ -20,10 +22,15 @@ mod renderer;
 struct App<'a> {
     display: GlutinFacade,
     renderer: Renderer<'a>,
-    values: DisplayValues,
-    mouse: DisplayCoord,
+    display_values: DisplayValues,
+    input_values: InputValues,
 
     model: Model
+}
+
+#[derive(Copy, Clone)]
+enum State {
+    Main
 }
 
 impl<'a> App<'a> {
@@ -38,44 +45,59 @@ impl<'a> App<'a> {
 
         let values = DisplayValues::new(display.get_window().unwrap().get_inner_size_pixels().unwrap());
         let renderer = Renderer::new(&display);
+        renderer.update_display(&values);
 
         App {
             display: display,
             renderer: renderer,
-            values: values,
-            mouse: DisplayCoord(0, 0),
+            display_values: values,
+            input_values: InputValues::new(),
 
             model: Model::new()
         }
     }
 
-    fn main_loop(&mut self) -> Option<()> {
+    fn handle_main(&mut self) -> Option<State> {
         for event in self.display.poll_events() {
             match event {
-                Event::Resized(w, h) => self.values.size = (w, h),
+                Event::Resized(w, h) => {
+                    self.display_values.size = (w, h);
+                    self.renderer.update_display(&self.display_values);
+                }
 
-                Event::MouseMoved(x, y) => self.mouse = DisplayCoord(x, y),
+                Event::MouseMoved(x, y) => self.input_values.mouse = DisplayCoord(x, y),
 
                 Event::MouseWheel(d, _) => {
                     match d {
                         MouseScrollDelta::LineDelta(_, _) => unimplemented!(),
                         MouseScrollDelta::PixelDelta(_, yd) => {
                             let yd = std::cmp::max(std::cmp::min(yd as i32, 200), -200);
-                            self.values.scale += yd as f32 / 200.0;
+                            self.display_values.scale += yd as f32 / 200.0;
+                            self.renderer.update_display(&self.display_values);
                         }
                     }
                 },
 
                 Event::MouseInput(ElementState::Pressed, _) => {
-                    self.model.add_table("", self.values.world_coord(self.mouse));
+                    self.model.add_table("", self.display_values.world_coord(self.input_values.mouse));
                 },
 
                 Event::KeyboardInput(ElementState::Pressed, _, Some(code)) => {
                     match code {
-                        VirtualKeyCode::Up | VirtualKeyCode::W => self.values.offset.1 -= 20,
-                        VirtualKeyCode::Down | VirtualKeyCode::S => self.values.offset.1 += 20,
-                        VirtualKeyCode::Left | VirtualKeyCode::A => self.values.offset.0 -= 20,
-                        VirtualKeyCode::Right | VirtualKeyCode::D => self.values.offset.0 += 20,
+                        VirtualKeyCode::Up | VirtualKeyCode::W => self.input_values.up = true,
+                        VirtualKeyCode::Down | VirtualKeyCode::S => self.input_values.down = true,
+                        VirtualKeyCode::Left | VirtualKeyCode::A => self.input_values.left = true,
+                        VirtualKeyCode::Right | VirtualKeyCode::D => self.input_values.right = true,
+                        _ => ()
+                    }
+                },
+
+                Event::KeyboardInput(ElementState::Released, _, Some(code)) => {
+                    match code {
+                        VirtualKeyCode::Up | VirtualKeyCode::W => self.input_values.up = false,
+                        VirtualKeyCode::Down | VirtualKeyCode::S => self.input_values.down = false,
+                        VirtualKeyCode::Left | VirtualKeyCode::A => self.input_values.left = false,
+                        VirtualKeyCode::Right | VirtualKeyCode::D => self.input_values.right = false,
                         _ => ()
                     }
                 },
@@ -86,11 +108,47 @@ impl<'a> App<'a> {
             }
         }
 
-        let mut target = self.display.draw();
-        self.renderer.render_tables(&mut target, &self.values, &self.model.view);
-        target.finish().unwrap();
+        Some(State::Main)
+    }
 
-        Some(())
+    fn handle_state(&mut self, state: State) -> Option<State> {
+        match state {
+            State::Main => self.handle_main()
+        }
+    }
+
+    fn tick(&mut self) {
+        let mut moved = false;
+
+        if self.input_values.up {
+            self.display_values.offset.1 -= 10;
+            moved = true;
+        }
+
+        if self.input_values.down {
+            self.display_values.offset.1 += 10;
+            moved = true;
+        }
+
+        if self.input_values.left {
+            self.display_values.offset.0 -= 10;
+            moved = true;
+        }
+
+        if self.input_values.right {
+            self.display_values.offset.0 += 10;
+            moved = true;
+        }
+
+        if moved {
+            self.renderer.update_display(&self.display_values);
+        }
+    }
+
+    fn render_frame(&self) {
+        let mut target = self.display.draw();
+        self.renderer.render_tables(&mut target, &self.model.view);
+        target.finish().unwrap();
     }
 
     fn run(&mut self) {
@@ -99,13 +157,19 @@ impl<'a> App<'a> {
 
         let spf = Duration::from_millis(33);
 
-        while let Some(()) = self.main_loop() {
+        let mut state = State::Main;
+        while let Some(next) = self.handle_state(state) {
+            state = next;
+            self.render_frame();
+
             let now = Instant::now();
             accum += now - prev;
             prev = now;
 
             while accum >= spf {
                 accum -= spf;
+
+                self.tick();
             }
 
             sleep(spf - accum);
