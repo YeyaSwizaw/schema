@@ -66,6 +66,9 @@ impl View {
     }
 
     pub fn check_focus(&self, coord: WorldCoord) -> Option<Index> {
+        let mut current = None;
+        let mut z = self.min_z - 1;
+
         for (index, table) in self.tables.iter().enumerate().rev() {
             let (x0, x1) = if table.size.0 > 0 {
                 (table.pos.0, table.pos.0 + table.size.0)
@@ -79,12 +82,13 @@ impl View {
                 (table.pos.1 + table.size.1, table.pos.1)
             };
 
-            if coord.0 > x0 && coord.1 > y0 && coord.0 < x1 && coord.1 < y1 {
-                return Some(Index(index))
+            if coord.0 > x0 && coord.1 > y0 && coord.0 < x1 && coord.1 < y1 && table.z > z {
+                current = Some(Index(index));
+                z = table.z;
             }
         }
 
-        None
+        current
     }
 
     pub fn add_table(&mut self, id: usize, pos: WorldCoord) -> Index {

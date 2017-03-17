@@ -29,11 +29,11 @@ pub struct Renderer<'a> {
     table_program: Program,
     table_indices: NoIndices,
     table_vertices: VertexBuffer<TableVertex>,
+    table_params: DrawParameters<'a>,
 
     focus_program: Program,
     focus_indices: NoIndices,
-
-    draw_params: DrawParameters<'a>,
+    focus_params: DrawParameters<'a>,
 }
 
 impl<'a> Renderer<'a> {
@@ -44,15 +44,22 @@ impl<'a> Renderer<'a> {
             table_program: shaders::table_shader(display),
             table_indices: NoIndices(PrimitiveType::TriangleFan),
             table_vertices: VertexBuffer::new(display, &[tv(0, 0), tv(0, 1), tv(1, 1), tv(1, 0)]).unwrap(),
-
-            focus_program: shaders::focus_shader(display),
-            focus_indices: NoIndices(PrimitiveType::Points),
-
-            draw_params: DrawParameters {
+            table_params: DrawParameters {
                 blend: Blend::alpha_blending(),
                 depth: Depth {
                     test: DepthTest::IfLessOrEqual,
                     write: true,
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+
+            focus_program: shaders::focus_shader(display),
+            focus_indices: NoIndices(PrimitiveType::Points),
+            focus_params: DrawParameters {
+                depth: Depth {
+                    test: DepthTest::Overwrite,
+                    write: false,
                     ..Default::default()
                 },
                 ..Default::default()
@@ -75,7 +82,7 @@ impl<'a> Renderer<'a> {
                 display_block: &self.display_uniforms,
             };
 
-            target.draw(&self.table_vertices, &self.table_indices, &self.table_program, &uniforms, &self.draw_params).unwrap();
+            target.draw(&self.table_vertices, &self.table_indices, &self.table_program, &uniforms, &self.table_params).unwrap();
         }
     }
 
@@ -87,7 +94,7 @@ impl<'a> Renderer<'a> {
             display_block: &self.display_uniforms,
         };
 
-        target.draw(&self.table_vertices, &self.focus_indices, &self.focus_program, &uniforms, &self.draw_params).unwrap();
+        target.draw(&self.table_vertices, &self.focus_indices, &self.focus_program, &uniforms, &self.focus_params).unwrap();
     }
 }
 
