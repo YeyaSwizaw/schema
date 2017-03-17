@@ -2,13 +2,11 @@
 
 in vec2 vertex;
 
-// Box Parameters
 uniform ivec2 position;
 uniform ivec2 size;
 uniform int z;
 
-// Display Parameters
-uniform display {
+layout(std140) uniform display_block {
     uvec2 size;
     ivec2 offset;
     float scale;

@@ -1,5 +1,3 @@
-#![feature(box_syntax)]
-
 #[macro_use] extern crate glium;
 
 use std::time::{Duration, Instant};
@@ -9,6 +7,7 @@ use std::cmp;
 use glium::{DisplayBuild, Surface};
 use glium::glutin::{WindowBuilder, Event, ElementState, MouseScrollDelta, VirtualKeyCode};
 use glium::backend::glutin_backend::GlutinFacade;
+use glium::debug::DebugCallbackBehavior;
 
 use model::Model;
 use view::Index;
@@ -39,10 +38,9 @@ impl<'a> App<'a> {
         let display = WindowBuilder::new()
             .with_title("Schema Designer")
             .with_dimensions(600, 600)
-            .with_decorations(false)
             .with_depth_buffer(24)
             .with_vsync()
-            .build_glium()
+            .build_glium_debug(DebugCallbackBehavior::PrintAll)
             .unwrap();
 
         let values = DisplayValues::new(display.get_window().unwrap().get_inner_size_pixels().unwrap());

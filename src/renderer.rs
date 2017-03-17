@@ -12,16 +12,16 @@ use ::values::*;
 
 #[derive(Copy, Clone)]
 struct DisplayUniforms {
-    display: DisplayValues
+    display_block: DisplayValues
 }
 
 fn du(values: DisplayValues) -> DisplayUniforms {
     DisplayUniforms {
-        display: values
+        display_block: values
     }
 }
 
-implement_uniform_block!(DisplayUniforms, display);
+implement_uniform_block!(DisplayUniforms, display_block);
 
 pub struct Renderer<'a> {
     display_uniforms: UniformBuffer<DisplayUniforms>,
@@ -66,7 +66,7 @@ impl<'a> Renderer<'a> {
                 z: table.z,
                 inner_colour: table.inner_colour,
                 outer_colour: table.outer_colour,
-                display: &self.display_uniforms,
+                display_block: &self.display_uniforms,
             };
 
             target.draw(&self.table_vertices, &self.table_indices, &self.table_program, &uniforms, &self.draw_params).unwrap();
