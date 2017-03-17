@@ -23,5 +23,7 @@ void main() {
         0, 0, -0.01, 0,
         -1, 1, 0, 1
     );
+
     gl_Position = proj * vec4(world_coords - display.offset, z, 1);
 }
+

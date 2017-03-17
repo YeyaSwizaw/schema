@@ -193,6 +193,11 @@ impl<'a> App<'a> {
         target.clear_depth(1.0);
 
         self.renderer.render_tables(&mut target, &self.model.view);
+
+        if let Some(table) = self.focus.and_then(|index| self.model.view.get_table(index)) {
+            self.renderer.render_focus(&mut target, table);
+        }
+
         target.finish().unwrap();
     }
 

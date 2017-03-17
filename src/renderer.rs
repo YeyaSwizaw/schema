@@ -7,7 +7,7 @@ use glium::uniforms::UniformBuffer;
 use glium::draw_parameters::DrawParameters;
 
 use ::shaders;
-use ::view::View;
+use ::view::{Table, View};
 use ::values::*;
 
 #[derive(Copy, Clone)]
@@ -30,6 +30,9 @@ pub struct Renderer<'a> {
     table_indices: NoIndices,
     table_vertices: VertexBuffer<TableVertex>,
 
+    focus_program: Program,
+    focus_indices: NoIndices,
+
     draw_params: DrawParameters<'a>,
 }
 
@@ -42,10 +45,13 @@ impl<'a> Renderer<'a> {
             table_indices: NoIndices(PrimitiveType::TriangleFan),
             table_vertices: VertexBuffer::new(display, &[tv(0, 0), tv(0, 1), tv(1, 1), tv(1, 0)]).unwrap(),
 
+            focus_program: shaders::focus_shader(display),
+            focus_indices: NoIndices(PrimitiveType::Points),
+
             draw_params: DrawParameters {
                 blend: Blend::alpha_blending(),
                 depth: Depth {
-                    test: DepthTest::IfLess,
+                    test: DepthTest::IfLessOrEqual,
                     write: true,
                     ..Default::default()
                 },
@@ -71,6 +77,17 @@ impl<'a> Renderer<'a> {
 
             target.draw(&self.table_vertices, &self.table_indices, &self.table_program, &uniforms, &self.draw_params).unwrap();
         }
+    }
+
+    pub fn render_focus<Target: Surface>(&self, target: &mut Target, table: &Table) {
+        let uniforms = uniform! {
+            position: table.pos,
+            size: table.size,
+            z: table.z,
+            display_block: &self.display_uniforms,
+        };
+
+        target.draw(&self.table_vertices, &self.focus_indices, &self.focus_program, &uniforms, &self.draw_params).unwrap();
     }
 }
 

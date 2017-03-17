@@ -89,8 +89,7 @@ impl View {
 
     pub fn add_table(&mut self, id: usize, pos: WorldCoord) -> Index {
         let idx = Index(self.tables.len());
-        self.tables.push(Table::new(id, pos, self.max_z + 1));
-        self.max_z += 1;
+        self.tables.push(Table::new(id, pos, self.max_z));
         idx
     }
 }
