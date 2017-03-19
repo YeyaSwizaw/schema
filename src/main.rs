@@ -1,19 +1,20 @@
+#[macro_use] extern crate stateloop;
 #[macro_use] extern crate glium;
 
-use std::time::{Duration, Instant};
-use std::thread::sleep;
 use std::cmp;
 
-use glium::{DisplayBuild, Surface};
-use glium::glutin::{WindowBuilder, Event, ElementState, MouseScrollDelta, VirtualKeyCode};
+use glium::Surface;
+use glium::glutin::{Event, ElementState, MouseScrollDelta, VirtualKeyCode};
 use glium::backend::glutin_backend::GlutinFacade;
-use glium::debug::DebugCallbackBehavior;
+
+use stateloop::app::App;
+use stateloop::state::Action;
 
 use model::Model;
 use view::Index;
 use renderer::Renderer;
 use values::*;
-use states::{State, Action};
+use states::State;
 
 mod model;
 mod view;
@@ -22,8 +23,7 @@ mod values;
 mod renderer;
 mod states;
 
-pub struct App<'a> {
-    display: GlutinFacade,
+pub struct Stuff<'a> {
     renderer: Renderer<'a>,
 
     display_values: DisplayValues,
@@ -33,44 +33,19 @@ pub struct App<'a> {
     model: Model
 }
 
-impl<'a> App<'a> {
-    fn new() -> App<'a> {
-        let display = WindowBuilder::new()
-            .with_title("Schema Designer")
-            .with_dimensions(600, 600)
-            .with_depth_buffer(24)
-            .with_vsync()
-            .build_glium_debug(DebugCallbackBehavior::PrintAll)
-            .unwrap();
-
-        let values = DisplayValues::new(display.get_window().unwrap().get_inner_size_pixels().unwrap());
-        let renderer = Renderer::new(&display);
-        renderer.update_display(&values);
-
-        App {
-            display: display,
-            renderer: renderer,
-
-            display_values: values,
-            input_values: InputValues::new(),
-            focus: None,
-
-            model: Model::new()
-        }
-    }
-
-    fn default_actions(&mut self, event: Event) -> Option<State> {
+impl<'a> Stuff<'a> {
+    fn default_action(&mut self, event: Event) -> Action<State> {
         match event {
             Event::Resized(w, h) => {
                 self.display_values.size = (w, h);
                 self.renderer.update_display(&self.display_values);
-                None
+                Action::Continue
             },
 
             Event::MouseMoved(x, y) => {
                 self.input_values.mouse = DisplayCoord(x, y);
                 self.input_values.moved = true;
-                None
+                Action::Continue
             },
 
             Event::MouseWheel(d, _) => {
@@ -84,7 +59,7 @@ impl<'a> App<'a> {
                             self.display_values.scale += sd;
                             a
                         } else {
-                            return None
+                            return Action::Continue
                         };
 
                         let b = self.display_values.world_coord(self.input_values.mouse);
@@ -96,7 +71,7 @@ impl<'a> App<'a> {
                     }
                 }
 
-                None
+                Action::Continue
             },
 
 
@@ -109,7 +84,7 @@ impl<'a> App<'a> {
                     _ => ()
                 }
 
-                None
+                Action::Continue
             },
 
             Event::KeyboardInput(ElementState::Released, _, Some(code)) => {
@@ -121,37 +96,13 @@ impl<'a> App<'a> {
                     _ => ()
                 }
 
-                None
+                Action::Continue
             },
 
-            Event::Closed => Some(State::Quit),
+            Event::Closed => Action::Quit,
 
-            _ => None
+            _ => Action::Continue
         }
-    }
-
-    fn handle_events(&mut self, mut state: State) -> Option<State> {
-        loop {
-            let event = if let Some(event) = self.display.poll_events().next() {
-                event
-            } else {
-                break
-            };
-
-            state = match state.handle_event(self, event.clone()) {
-                Action::Default => if let Some(state) = self.default_actions(event) {
-                    state
-                } else {
-                    state
-                },
-
-                Action::Continue => state,
-                Action::Done(state) => state,
-                Action::Quit => return None
-            }
-        }
-
-        Some(state)
     }
 
     fn check_scroll(&mut self) {
@@ -187,8 +138,8 @@ impl<'a> App<'a> {
         self.focus = self.model.view.check_focus(coord);
     }
 
-    fn render_frame(&self) {
-        let mut target = self.display.draw();
+    fn render_frame(&self, display: &GlutinFacade) {
+        let mut target = display.draw();
         target.clear_color(0.3, 0.3, 0.3, 1.0);
         target.clear_depth(1.0);
 
@@ -200,33 +151,31 @@ impl<'a> App<'a> {
 
         target.finish().unwrap();
     }
-
-    fn run(&mut self) {
-        let mut accum = Duration::from_millis(0);
-        let mut prev = Instant::now();
-
-        let spf = Duration::from_millis(33);
-
-        let mut state = State::Main;
-        while let Some(next) = self.handle_events(state) {
-            state = next;
-            self.render_frame();
-
-            let now = Instant::now();
-            accum += now - prev;
-            prev = now;
-
-            while accum >= spf {
-                accum -= spf;
-
-                state.handle_tick(self);
-            }
-
-            sleep(spf - accum);
-        }
-    }
 }
 
 fn main() {
-    App::new().run()
+    App::new(
+        |builder| builder
+            .with_title("Schema Designer")
+            .with_dimensions(600, 600)
+            .with_depth_buffer(24)
+            .with_vsync(),
+
+        |display| {
+            let values = DisplayValues::new(display.get_window().unwrap().get_inner_size_pixels().unwrap());
+            let renderer = Renderer::new(display);
+            renderer.update_display(&values);
+
+            Stuff {
+                renderer: renderer,
+
+                display_values: values,
+                input_values: InputValues::new(),
+                focus: None,
+
+                model: Model::new()
+            }
+        }
+    )
+        .run(State::Main())
 }
