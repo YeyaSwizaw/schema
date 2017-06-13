@@ -41,7 +41,7 @@ impl<'a> MainHandler for App<Stuff<'a>> {
         }
     }
 
-    fn handle_render(&mut self) {
+    fn handle_render(&self) {
         self.data().render_frame(self.display())
     }
 }

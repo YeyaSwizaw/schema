@@ -177,5 +177,5 @@ fn main() {
             }
         }
     )
-        .run(State::Main())
+        .run(30, State::Main())
 }

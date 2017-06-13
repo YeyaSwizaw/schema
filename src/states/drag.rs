@@ -30,7 +30,7 @@ impl<'a> DragTableHandler for App<Stuff<'a>> {
         table.pos = pos;
     }
 
-    fn handle_render(&mut self, _: Index, _: (i32, i32)) {
+    fn handle_render(&self, _: Index, _: (i32, i32)) {
         self.data().render_frame(self.display())
     }
 }

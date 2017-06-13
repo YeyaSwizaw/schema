@@ -30,7 +30,7 @@ impl<'a> AddTableHandler for App<Stuff<'a>> {
         table.size = size;
     }
 
-    fn handle_render(&mut self, _: Index, _: WorldCoord) {
+    fn handle_render(&self, _: Index, _: WorldCoord) {
         self.data().render_frame(self.display())
     }
 }
