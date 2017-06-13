@@ -47,7 +47,7 @@ impl<'a> Renderer<'a> {
             table_params: DrawParameters {
                 blend: Blend::alpha_blending(),
                 depth: Depth {
-                    test: DepthTest::IfLessOrEqual,
+                    test: DepthTest::IfMore,
                     write: true,
                     ..Default::default()
                 },
@@ -72,11 +72,10 @@ impl<'a> Renderer<'a> {
     }
 
     pub fn render_tables<Target: Surface>(&self, target: &mut Target, view: &View) {
-        for table in view.tables() {
+        for table in view.tables().iter().rev() {
             let uniforms = uniform! {
                 position: table.pos,
                 size: table.size,
-                z: table.z,
                 inner_colour: table.inner_colour,
                 outer_colour: table.outer_colour,
                 display_block: &self.display_uniforms,
@@ -90,7 +89,6 @@ impl<'a> Renderer<'a> {
         let uniforms = uniform! {
             position: table.pos,
             size: table.size,
-            z: table.z,
             display_block: &self.display_uniforms,
         };
 

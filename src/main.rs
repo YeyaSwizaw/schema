@@ -141,7 +141,7 @@ impl<'a> Stuff<'a> {
     fn render_frame(&self, display: &GlutinFacade) {
         let mut target = display.draw();
         target.clear_color(0.3, 0.3, 0.3, 1.0);
-        target.clear_depth(1.0);
+        target.clear_depth(0.0);
 
         self.renderer.render_tables(&mut target, &self.model.view);
 

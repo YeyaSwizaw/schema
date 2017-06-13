@@ -15,10 +15,10 @@ impl<'a> MainHandler for App<Stuff<'a>> {
             Event::MouseInput(ElementState::Pressed, _) => {
                 let coord = stuff.display_values.world_coord(stuff.input_values.mouse);
 
-                if let Some(index) = stuff.focus {
-                    stuff.model.view.bring_to_front(index);
-                    let table = stuff.model.view.get_table(index).unwrap();
-                    Action::Done(State::DragTable(index, (coord.0 - table.pos.0, coord.1 - table.pos.1)))
+                if let Some(ref mut index) = stuff.focus {
+                    *index = stuff.model.view.bring_to_front(*index);
+                    let table = stuff.model.view.get_table(*index).unwrap();
+                    Action::Done(State::DragTable(*index, (coord.0 - table.pos.0, coord.1 - table.pos.1)))
                 } else {
                     let index = stuff.model.add_table("", stuff.display_values.world_coord(stuff.input_values.mouse));
                     Action::Done(State::AddTable(index, coord))

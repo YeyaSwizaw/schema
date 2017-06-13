@@ -5,7 +5,6 @@ layout(triangle_strip, max_vertices = 6) out;
 
 uniform ivec2 position;
 uniform ivec2 size;
-uniform int z;
 
 layout(std140) uniform display_block {
     uvec2 size;
@@ -25,7 +24,7 @@ void main() {
     mat4 proj = mat4(
         2 * display.scale / float(display.size.x), 0, 0, 0,
         0, -2 * display.scale / float(display.size.y), 0, 0,
-        0, 0, -0.01, 0,
+        0, 0, 1, 0,
         -1, 1, 0, 1
     );
 
@@ -49,7 +48,7 @@ void main() {
     }
 
     for(int i = 0; i < 6; i++) {
-        gl_Position = proj * vec4(world_coords - display.offset + rot * shape[i], z, 1);
+        gl_Position = proj * vec4(world_coords - display.offset + rot * shape[i], 1, 1);
         EmitVertex();
     }
 

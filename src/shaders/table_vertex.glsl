@@ -4,7 +4,6 @@ in vec2 vertex;
 
 uniform ivec2 position;
 uniform ivec2 size;
-uniform int z;
 
 layout(std140) uniform display_block {
     uvec2 size;
@@ -20,10 +19,10 @@ void main() {
     mat4 proj = mat4(
         2 * display.scale / float(display.size.x), 0, 0, 0,
         0, -2 * display.scale / float(display.size.y), 0, 0,
-        0, 0, -0.01, 0,
+        0, 0, 1, 0,
         -1, 1, 0, 1
     );
 
-    gl_Position = proj * vec4(world_coords - display.offset, z, 1);
+    gl_Position = proj * vec4(world_coords - display.offset, 1, 1);
 }
 
