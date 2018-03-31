@@ -1,7 +1,7 @@
-use glium::glutin::Event;
-
 use ::values::WorldCoord;
 use ::view::Index;
+
+use stateloop::app::Event;
 
 mod main;
 mod add;

@@ -1,18 +1,22 @@
-use glium::glutin::{Event, ElementState};
-use stateloop::state::Action;
-use stateloop::app::App;
+use stateloop::{
+    state::Action,
+    app::{Data, Event},
+    winit::ElementState,
+};
 
 use super::MainHandler;
+
+use glium::Display;
 
 use ::Stuff;
 use ::states::State;
 
-impl<'a> MainHandler for App<Stuff<'a>> {
+impl<'a> MainHandler for Data<Stuff<'a>, Display> {
     fn handle_event(&mut self, event: Event) -> Action<State> {
-        let stuff = self.data_mut();
+        let stuff = &mut self.data;
 
         match event {
-            Event::MouseInput(ElementState::Pressed, _) => {
+            Event::MouseInput{state: ElementState::Pressed, ..} => {
                 let coord = stuff.display_values.world_coord(stuff.input_values.mouse);
 
                 if let Some(ref mut index) = stuff.focus {
@@ -31,7 +35,7 @@ impl<'a> MainHandler for App<Stuff<'a>> {
     }
 
     fn handle_tick(&mut self) {
-        let stuff = self.data_mut();
+        let stuff = &mut self.data;
 
         stuff.check_scroll();
 
@@ -42,7 +46,7 @@ impl<'a> MainHandler for App<Stuff<'a>> {
     }
 
     fn handle_render(&self) {
-        self.data().render_frame(self.display())
+        self.data.render_frame(self.window());
     }
 }
 

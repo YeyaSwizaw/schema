@@ -3,6 +3,10 @@ authors = ["Samuel Sleight <samuel.sleight@gmail.com>"]
 name = "schema"
 version = "0.1.0"
 
-[dependencies]
-stateloop = "*"
-glium = "*"
+[dependencies.stateloop]
+git = "https://github.com/YeyaSwizaw/stateloop"
+rev = "cfa352b70c"
+
+[dependencies.glium]
+git = "https://github.com/Brooooooklyn/glium"
+rev = "13ccc9cebe"

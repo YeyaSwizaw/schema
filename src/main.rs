@@ -3,12 +3,16 @@
 
 use std::cmp;
 
-use glium::Surface;
-use glium::glutin::{Event, ElementState, MouseScrollDelta, VirtualKeyCode};
-use glium::backend::glutin_backend::GlutinFacade;
+use glium::{
+    Surface, Display,
+    glutin::ContextBuilder,
+};
 
-use stateloop::app::App;
-use stateloop::state::Action;
+use stateloop::{
+    state::Action,
+    app::{App, Event},
+    winit::{ElementState, MouseScrollDelta, KeyboardInput, VirtualKeyCode, WindowBuilder},
+};
 
 use model::Model;
 use view::Index;
@@ -42,14 +46,14 @@ impl<'a> Stuff<'a> {
                 Action::Continue
             },
 
-            Event::MouseMoved(x, y) => {
-                self.input_values.mouse = DisplayCoord(x, y);
+            Event::CursorMoved{position: (x, y), ..} => {
+                self.input_values.mouse = DisplayCoord(x as i32, y as i32);
                 self.input_values.moved = true;
                 Action::Continue
             },
 
-            Event::MouseWheel(d, _) => {
-                match d {
+            Event::MouseWheel{delta, ..} => {
+                match delta {
                     MouseScrollDelta::LineDelta(_, _) => unimplemented!(),
                     MouseScrollDelta::PixelDelta(_, yd) => {
                         let sd = cmp::max(cmp::min(yd as i32, 200), -200) as f32 / -200.0;
@@ -75,7 +79,7 @@ impl<'a> Stuff<'a> {
             },
 
 
-            Event::KeyboardInput(ElementState::Pressed, _, Some(code)) => {
+            Event::KeyboardInput{input: KeyboardInput{state: ElementState::Pressed, virtual_keycode: Some(code), ..}, ..} => {
                 match code {
                     VirtualKeyCode::Up | VirtualKeyCode::W => self.input_values.up = true,
                     VirtualKeyCode::Down | VirtualKeyCode::S => self.input_values.down = true,
@@ -87,7 +91,7 @@ impl<'a> Stuff<'a> {
                 Action::Continue
             },
 
-            Event::KeyboardInput(ElementState::Released, _, Some(code)) => {
+            Event::KeyboardInput{input: KeyboardInput{state: ElementState::Released, virtual_keycode: Some(code), ..}, ..} => {
                 match code {
                     VirtualKeyCode::Up | VirtualKeyCode::W => self.input_values.up = false,
                     VirtualKeyCode::Down | VirtualKeyCode::S => self.input_values.down = false,
@@ -138,7 +142,7 @@ impl<'a> Stuff<'a> {
         self.focus = self.model.view.check_focus(coord);
     }
 
-    fn render_frame(&self, display: &GlutinFacade) {
+    fn render_frame(&self, display: &Display) {
         let mut target = display.draw();
         target.clear_color(0.3, 0.3, 0.3, 1.0);
         target.clear_depth(0.0);
@@ -155,14 +159,16 @@ impl<'a> Stuff<'a> {
 
 fn main() {
     App::new(
-        |builder| builder
-            .with_title("Schema Designer")
-            .with_dimensions(600, 600)
-            .with_depth_buffer(24)
-            .with_vsync(),
+        |event_loop| {
+            let builder = WindowBuilder::new()
+                .with_title("Schema Designer")
+                .with_dimensions(600, 600);
+
+            Display::new(builder, ContextBuilder::new(), event_loop)
+        },
 
         |display| {
-            let values = DisplayValues::new(display.get_window().unwrap().get_inner_size_pixels().unwrap());
+            let values = DisplayValues::new(display.gl_window().get_inner_size().unwrap());
             let renderer = Renderer::new(display);
             renderer.update_display(&values);
 
@@ -177,5 +183,6 @@ fn main() {
             }
         }
     )
+        .unwrap()
         .run(30, State::Main())
 }

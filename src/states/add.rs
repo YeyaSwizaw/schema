@@ -1,6 +1,10 @@
-use glium::glutin::{Event, ElementState};
-use stateloop::state::Action;
-use stateloop::app::App;
+use stateloop::{
+    state::Action,
+    app::{Data, Event},
+    winit::ElementState,
+};
+
+use glium::Display;
 
 use super::AddTableHandler;
 
@@ -9,17 +13,17 @@ use ::states::State;
 use ::values::WorldCoord;
 use ::view::Index;
 
-impl<'a> AddTableHandler for App<Stuff<'a>> {
+impl<'a> AddTableHandler for Data<Stuff<'a>, Display> {
     fn handle_event(&mut self, event: Event, _: Index, _: WorldCoord) -> Action<State> {
         match event {
-            Event::MouseInput(ElementState::Released, _) => Action::Done(State::Main()),
+            Event::MouseInput{state: ElementState::Released, ..} => Action::Done(State::Main()),
 
-            _ => self.data_mut().default_action(event)
+            _ => self.data.default_action(event)
         }
     }
 
     fn handle_tick(&mut self, index: Index, start: WorldCoord) {
-        let stuff = self.data_mut();
+        let stuff = &mut self.data;
 
         stuff.check_scroll();
 
@@ -31,6 +35,6 @@ impl<'a> AddTableHandler for App<Stuff<'a>> {
     }
 
     fn handle_render(&self, _: Index, _: WorldCoord) {
-        self.data().render_frame(self.display())
+        self.data.render_frame(self.window());
     }
 }
